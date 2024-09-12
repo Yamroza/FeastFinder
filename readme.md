@@ -1,3 +1,2 @@
 # FeastFinder
-A dialog-based system for restaurant recommendation.
-
+We will sell it to Google and make millions.
