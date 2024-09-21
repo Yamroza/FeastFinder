@@ -1,0 +1,42 @@
+Wellcome
+Wellcome to FeastFinder, I will find you a restaurant. Please tell what type of food would you like to eat, where, and in what price range
+
+Ask area
+In what area should be the place?
+
+Ask food type
+What cuisine are you looking for?
+
+Ask price range
+In what price range should be the restaurant?
+
+Are you sure about choices
+I am looking for {price range}, {type} food, in {area}. Is that correct?
+
+Ask which input to change
+What is not correct?
+
+Suggest a restaurant; Ask whether it is okay and/or user needs more info
+{restaurant name} is located in {area} and is a {price range}, {type}. Does it sounds good?
+
+Ask whether user wants to change input (YES/NO)
+Do you want to look for something else?
+
+Ask if user needs more info on the restaurant
+Do you want to know anything else about the restaurant?
+
+Reply:
+	If asks about the address
+    The address of the {restaurant name} is {restaurant address}
+
+	If asks about the phone number
+	The phone number of the {restaurant name} is {restaurant number}
+
+	If asks about anything else
+	Unfortunately I don't have this in my database
+
+Do you have any more questions?
+Can I give you any more information?
+
+Wish Bon Appetit
+I hope you'll have a great time. Bye bye!
