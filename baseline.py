@@ -294,10 +294,11 @@ def prediction(Xnew, verbose = False):
     X_new_vector = np.array(X_new_vector)
     ynew = model_LR.predict(X_new_vector)
 # show the inputs and predicted outputs
-    if verbose:
-        for i in range(len(Xnew)):
-            print("X=%s, Predicted=%s" % (Xnew[i], word_list[np.argmax(ynew[i])]))
-            print(word_list[np.argmax(ynew[i])])
+    for i in range(len(Xnew)):
+        outcome =  word_list[np.argmax(ynew[i])]
+        if verbose:
+            print("X=%s, Predicted=%s" % (Xnew[i], outcome))
+            print(outcome)
     return word_list[np.argmax(ynew[i])]
 
 
