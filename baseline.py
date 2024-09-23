@@ -292,7 +292,7 @@ Xnew = ["yes", "thai food", "what is the cheapest restaurant in london?"]
 def prediction(Xnew, verbose = False):
     X_new_vector = to_vector(Xnew)
     X_new_vector = np.array(X_new_vector)
-    ynew = model_LR.predict(X_new_vector)
+    ynew = model_LR.predict(X_new_vector, verbose=False)
 # show the inputs and predicted outputs
     for i in range(len(Xnew)):
         outcome =  word_list[np.argmax(ynew[i])]
@@ -300,7 +300,6 @@ def prediction(Xnew, verbose = False):
             print("X=%s, Predicted=%s" % (Xnew[i], outcome))
             print(outcome)
     return word_list[np.argmax(ynew[i])]
-
 
 
 # %%
