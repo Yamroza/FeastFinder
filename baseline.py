@@ -147,8 +147,6 @@ for x in range(len(x_test)): # Iterating over sentences in the set
     if pred == y_test_basic[x]: # Adding 1 to successful prediction count if the prediction matches data
         positive += 1
 rate = positive / len(y_test_basic) # Calculating and displaying a success rate
-print('Rate is: ', rate)
-
 # %%
 # Doc2Vec (Sentences to vector)
 # We use this to convert the whole input paragraph to a vector
