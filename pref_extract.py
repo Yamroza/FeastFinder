@@ -1,8 +1,6 @@
 # %%
 import pandas as pd
-##!pip install python-Levenshtein
 from Levenshtein import distance
-import numpy as np
 
 # %%
 restaurant_info = pd.read_csv('data/restaurant_info.csv')
@@ -21,29 +19,6 @@ external_food_types = ['hindi', 'greek', 'scottish', 'corsica', 'christmas',
                        'danish', 'afghan']
 food_types = list(food_types)
 food_types.extend(external_food_types)
-
-"""
-Part 1C: Adding reasoning & Inference
-    Adding the properties food quality, crowdedness and length of stay to the csv file
-    using random values
-"""
-
-food_quality_ant = ['cheap', 'good', 'expensive']
-crowdedness_ant = ['busy', 'quiet', 'moderate', 'packed']
-length_of_stay_ant = ['long stay', 'short stay', 'moderate stay']
-
-# Corrected initialization of 1D arrays
-food_quality = np.random.choice(food_quality_ant, size=len(restaurant_info))
-crowdedness = np.random.choice(crowdedness_ant, size=len(restaurant_info))
-length_of_stay = np.random.choice(length_of_stay_ant, size=len(restaurant_info))
-
-# Add these attributes to the DataFrame
-restaurant_info["food_quality"] = food_quality
-restaurant_info["crowdedness"] = crowdedness
-restaurant_info["length_of_stay"] = length_of_stay
-
-add_pref = ['touristic', 'romantic', 'assigned seats', 'children']
-
 
 # %%
 def extract_preference(utterance: str, category_list: list, threshold_distance: int) -> str:
