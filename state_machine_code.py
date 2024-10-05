@@ -73,15 +73,16 @@ class StateMachine:
             'food_type': ["food", "type", "kitchen", "food type","cuisine","taste"],
             'price': ["price", "costs", "luxury", "amount","costs"]
         }
-        # TODO - add more messages
-        if(self.style == 'informal'):
+        self.rest_additional = None
+
+        if self.style == 'informal':
             self.message_dict = {
                 1: "Yo! This is FeastFinder, the best way to find a restaurant for you and your hommies. Let me know what do you crave, where, and how expensive.",
                 2: "In what hood do you want to eat?",
                 3: "What type of food are you looking for?",
                 4: "How expensive should it be?",
                 5: 'You want anything else?',
-                6: "Sorry, no such place in my database. We can try to look for something else, give me deifferent preferences.",
+                6: "Sorry, no such place in my database. We can try to look for something else, give me different preferences.",
                 7: f'{self.restaurant_name} is in {self.area} and is a {self.price} {self.food_type}. Does it sounds good?',
                 8: f'{self.requested_info} of {self.restaurant_name} is {self.request_answer}',
                 9: "Have a great one. Peace!",
@@ -103,16 +104,17 @@ class StateMachine:
                 11: "That is not what I expected"
             }
         
-        if(self.if_caps):
+        if self.if_caps:
             print(self.message_dict[self.state].upper())
-
         else:
             print(self.message_dict[self.state])
-        if self.if_restart == True:
+
+        if self.if_restart:
             print('To start over, just type \'reset\'.')
+
         utterance = input()
         self.change_state(utterance)
-        
+
 
     def pattern_recog(self, utterance):
         """
@@ -161,20 +163,20 @@ class StateMachine:
         if self.if_restart == True:
             if utterance == 'reset':
                 return 1, True        
-        if utterance != None:
+        if utterance is not None:
             category = prediction([utterance])
         if category == 'thankyou':
             return 9, True
 
         
         if self.state == 1:
-            if utterance != None:
+            if utterance is not None:
                 self.preferences = extract_all_preferences(utterance)
             return 2, False
         
         if self.state == 2:
             self.preferences = self.update_dict(self.preferences, extract_all_preferences(utterance))
-            if self.pattern_recog(utterance) != None:
+            if self.pattern_recog(utterance) is not None:
                 self.any_update( self.pattern_recog(utterance), ["area"])
             if self.preferences['area'] is None:
                 return 2, True
@@ -183,7 +185,7 @@ class StateMachine:
             
         if self.state == 3:
             self.preferences = self.update_dict(self.preferences, extract_all_preferences(utterance))
-            if self.pattern_recog(utterance) != None:
+            if self.pattern_recog(utterance) is not None:
                 self.any_update( self.pattern_recog(utterance), ["food_type"])
             if self.preferences['food_type'] is None:
                 return 3, True
@@ -192,7 +194,7 @@ class StateMachine:
             
         if self.state == 4:
             self.preferences = self.update_dict(self.preferences, extract_all_preferences(utterance))
-            if self.pattern_recog(utterance) != None:
+            if self.pattern_recog(utterance) is not None:
                 self.any_update( self.pattern_recog(utterance), ["price"])
             if self.preferences['price'] is None:
                 return 4, True
@@ -205,7 +207,7 @@ class StateMachine:
             self.add_preferences = self.update_dict(self.add_preferences, extract_all_preferences_add(utterance))
             self.restaurants_options = find_add_preferences(self.restaurants_options, self.add_preferences)
 
-            if (self.restaurants_options.empty):
+            if self.restaurants_options.empty:
                 return 6, True
             else:
                 self.get_restaurant()
@@ -215,7 +217,7 @@ class StateMachine:
 
         if self.state == 6:
             self.preferences = self.update_dict(self.preferences, extract_all_preferences(utterance))
-            if self.pattern_recog(utterance) != None:
+            if self.pattern_recog(utterance) is not None:
                 self.any_update( self.pattern_recog(utterance), ["price"])
             self.restaurants_options = find_restaurants(self.restaurant_info, self.preferences)
             return 5, False
@@ -247,7 +249,7 @@ class StateMachine:
                 'postcode': ["postal", "postcode"]
              }
             for key, item in request_dict.items():
-                if extract_preference(utterance, item, 2) != None:
+                if extract_preference(utterance, item, 2) is not None:
                     if key == "food":
                         key_name = "cuisine"
                     elif key == "phone":
@@ -283,19 +285,19 @@ class StateMachine:
         self.food_type = rest["food"].values[0]
         self.rest_additional = rest[0]
 
-        if(self.rest_additional == 'assigned_seats'):
+        if self.rest_additional == 'assigned_seats':
             self.reason = "The restaurant has assigned seats, because the restaurant is busy"
-        if(self.rest_additional == 'children'):
+        if self.rest_additional == 'children':
             self.reason = "The restaurant is suitable for children as it does not have a long stay."
-        if(self.rest_additional == 'romantic'): 
+        if self.rest_additional == 'romantic':
             if rest["length_of_stay"] == "long stay":
                 self.reason = "The restaurant is romantic, because you can stay for a long time."
             else: 
                 self.reason = "The restaurant might be romantic, because it is not a busy restaurant."
-        if(self.rest_additional == "touristic"):
-            if (self.food_type != "romanian"):
+        if self.rest_additional == "touristic":
+            if self.food_type != "romanian":
                 self.reason = "The restaurant is touristic, because it is serves cheap and good food."
             else: 
-                self.reason = "The restauurant is touristic, because it is not local (Romanian) cuisine."
+                self.reason = "The restaurant is touristic, because it is not local (Romanian) cuisine."
 
         self.restaurants_options = self.restaurants_options.drop(rest.index)
