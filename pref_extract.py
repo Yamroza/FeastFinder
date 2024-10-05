@@ -1,6 +1,8 @@
 # %%
 import pandas as pd
+##!pip install python-Levenshtein
 from Levenshtein import distance
+import numpy as np
 
 # %%
 restaurant_info = pd.read_csv('restaurant_info.csv')
@@ -19,6 +21,28 @@ external_food_types = ['hindi', 'greek', 'scottish', 'corsica', 'christmas',
                        'danish', 'afghan']
 food_types = list(food_types)
 food_types.extend(external_food_types)
+
+"""
+Part 1C: Adding reasoning & Inference
+    Adding the properties food quality, crowdedness and length of stay to the csv file
+    using random values
+"""
+
+food_quality_ant = ['cheap', 'good', 'expensive']
+crowdedness_ant = ['busy', 'quiet', 'moderate', 'packed']
+length_of_stay_ant = ['long stay', 'short stay', 'moderate stay']
+
+# Corrected initialization of 1D arrays
+food_quality = np.random.choice(food_quality_ant, size=len(restaurant_info))
+crowdedness = np.random.choice(crowdedness_ant, size=len(restaurant_info))
+length_of_stay = np.random.choice(length_of_stay_ant, size=len(restaurant_info))
+
+# Add these attributes to the DataFrame
+restaurant_info["food_quality"] = food_quality
+restaurant_info["crowdedness"] = crowdedness
+restaurant_info["length_of_stay"] = length_of_stay
+
+add_pref = ['touristic', 'romantic', 'assigned seats', 'children']
 
 
 # %%
@@ -81,4 +105,45 @@ def find_restaurants(restaurant_info: pd.DataFrame, preferences: dict) -> pd.Dat
 find_restaurants(restaurant_info, preferences)
 
 
+def extract_all_preferences_add(utterance, add_pref):
 
+    value_dict = dict()
+    value_dict['add_pref'] = extract_preference(utterance, add_pref, 2)
+    
+    return value_dict 
+
+def add_requirements(subset_rest):
+
+    subset_rest['romantic'] = None
+    subset_rest['touristic'] = None
+    subset_rest['assigned_seats'] = None
+    subset_rest['children'] = None
+    
+    subset_rest.loc[subset_rest['cuisine'] == 'romanian', 'touristic'] = False
+    subset_rest.loc[(subset_rest['food_quality'] == 'good') & (subset_rest['price'] == 'cheap'), 'touristic'] = True
+    subset_rest.loc[subset_rest['crowdedness'] == 'busy', 'assigned_seats'] = True
+    subset_rest.loc[subset_rest['length_of_stay'] == 'long', 'children'] = False
+    subset_rest.loc[subset_rest['crowdedness'] == 'busy','romantic'] = False
+    subset_rest.loc[subset_rest['length_of_stay'] == 'long','romantic'] = True
+    
+    return subset_rest
+
+def find_add_preferences(restaurant_info: pd.DataFrame, add_preferences: dict) -> pd.DataFrame:
+    """
+    """
+    
+    spec_restaurants = add_requirements(restaurant_info)
+
+    if 'touristic' in add_preferences:
+        spec_restaurants = spec_restaurants[spec_restaurants['touristic'] == True]
+        
+    if 'assigned seats' in add_preferences:
+        spec_restaurants = spec_restaurants[spec_restaurants['assigned_seats'] == True]
+        
+    if 'children' in add_preferences:
+        spec_restaurants = spec_restaurants[spec_restaurants['children'] == True]
+        
+    if 'romantic' in add_preferences:
+        spec_restaurants = spec_restaurants[spec_restaurants['romantic'] == True]
+    
+    return spec_restaurants
