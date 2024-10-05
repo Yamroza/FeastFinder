@@ -1,17 +1,28 @@
-# %%
-from pref_extract import find_restaurants, extract_all_preferences, extract_preference, find_add_preferences, extract_all_preferences_add
 import pandas as pd
 import configparser
 import time
-
-# %%
-import importlib
-import baseline
-importlib.reload(baseline)
-from baseline import prediction 
-
-# %%
 import regex as re
+
+from sklearn.model_selection import train_test_split
+from ml_models import LR_WE_Model
+from pref_extract import find_restaurants, extract_all_preferences, extract_preference, find_add_preferences, extract_all_preferences_add
+
+# Opening train & test set
+x_set = []
+y_set = []
+
+with open("data/dialog_acts.dat", 'r') as file:
+    for line in file:
+        y_set.append(line.split()[0])
+        x_set.append(" ".join(line.split()[1:]).lower())
+
+x_train, x_test, y_train, y_test = train_test_split(x_set, y_set, test_size=0.2, random_state=42)
+
+# Initializing ml model for category classification
+model = LR_WE_Model()
+model.train(x_train, y_train)
+
+# Importing restaurant info
 restaurant_info = pd.read_csv('data/restaurant_info.csv')
 
 # %%
@@ -164,7 +175,7 @@ class StateMachine:
             if utterance == 'reset':
                 return 1, True        
         if utterance is not None:
-            category = prediction([utterance])
+            category = model.predict([utterance])
         if category == 'thankyou':
             return 9, True
 
