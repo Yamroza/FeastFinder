@@ -263,7 +263,7 @@ class ModelTrainer:
         return self.word_list[np.argmax(ynew[i])]
 
 
-model_trainer = ModelTrainer("dialog_acts.dat")
+model_trainer = ModelTrainer("data/dialog_acts.dat")
 #model_trainer.doc2vec_train()
 model_trainer.train_model(False, embedding = "D2V",model_type="FFN")
 model_trainer.train_model(False, embedding = "D2V",model_type="LR")

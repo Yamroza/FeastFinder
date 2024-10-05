@@ -12,7 +12,7 @@ from baseline import prediction
 
 # %%
 import regex as re
-restaurant_info = pd.read_csv('restaurant_info.csv')
+restaurant_info = pd.read_csv('data/restaurant_info.csv')
 
 # %%
 # Possible state transitions, not used, only to look at
@@ -299,9 +299,3 @@ class StateMachine:
                 self.reason = "The restauurant is touristic, because it is not local (Romanian) cuisine."
 
         self.restaurants_options = self.restaurants_options.drop(rest.index)
-           
-SM = StateMachine(restaurant_info)
-
-print("hello")
-
-

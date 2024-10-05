@@ -10,7 +10,7 @@ import pandas as pd
 x_set = []
 y_set = []
 
-with open("dialog_acts.dat", 'r') as file:
+with open("data/dialog_acts.dat", 'r') as file:
     for line in file:
         y_set.append(line.split()[0])
         x_set.append(" ".join(line.split()[1:]).lower())

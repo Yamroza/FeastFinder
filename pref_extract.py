@@ -5,7 +5,7 @@ from Levenshtein import distance
 import numpy as np
 
 # %%
-restaurant_info = pd.read_csv('restaurant_info.csv')
+restaurant_info = pd.read_csv('data/restaurant_info.csv')
 
 # extracting preferences available in out dataset
 food_types = pd.unique(restaurant_info['food'].dropna())
