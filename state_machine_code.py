@@ -2,9 +2,27 @@ import pandas as pd
 import configparser
 import time
 import regex as re
+import nltk
 
-from pref_extract import find_restaurants, extract_all_preferences, extract_preference, find_add_preferences, extract_all_preferences_add
+
+from sklearn.model_selection import train_test_split
 from ml_models import LR_WE_Model
+from pref_extract import find_restaurants, extract_all_preferences, extract_preference, find_add_preferences, extract_all_preferences_add
+
+# Opening train & test set
+x_set = []
+y_set = []
+
+with open("data/dialog_acts.dat", 'r') as file:
+    for line in file:
+        y_set.append(line.split()[0])
+        x_set.append(" ".join(line.split()[1:]).lower())
+
+x_train, x_test, y_train, y_test = train_test_split(x_set, y_set, test_size=0.2, random_state=42)
+
+# Initializing ml model for category classification
+model = LR_WE_Model()
+model.train(x_train, y_train)
 
 # Importing restaurant info
 restaurant_info = pd.read_csv('data/restaurant_info.csv')
@@ -24,7 +42,7 @@ restaurant_info = pd.read_csv('data/restaurant_info.csv')
 
 # %%
 class StateMachine:
-    def __init__(self, restaurant_info, model_path):
+    def __init__(self, restaurant_info):
 
         self.configParser = configparser.ConfigParser()
         self.filename = "config.ini"
@@ -34,9 +52,6 @@ class StateMachine:
         self.if_caps = self.configParser[self.setting[1]].getboolean('caps')
         self.style = self.configParser[self.setting[1]]['style']
         self.if_restart = self.configParser[self.setting[1]].getboolean('restart')
-
-        self.model = LR_WE_Model()
-        self.model.load(model_path)
 
         self.state = 1
         self.preferences = {
@@ -75,7 +90,7 @@ class StateMachine:
 
         if self.style == 'informal':
             self.message_dict = {
-                1: "Yo! This is FeastFinder, the best way to find a restaurant for you and your hommies. Let me know what do you crave, where, and how expensive.",
+                1: "Yo! This is FeastFinder, the best way to find a restaurant for you and your hommies. Let me know what do you crave, where, and how expensive. Also if you have any additional preferences!",
                 2: "In what hood do you want to eat?",
                 3: "What type of food are you looking for?",
                 4: "How expensive should it be?",
@@ -89,7 +104,7 @@ class StateMachine:
             }
         else:
             self.message_dict = {
-                1: "Welcome to FeastFinder, I will help find you a restaurant. Please tell what type of food would you like to eat, where, and in what price range.",
+                1: "Welcome to FeastFinder, I will help find you a restaurant. Please tell what type of food would you like to eat, where, and in what price range. Also if you have any additional preferences!",
                 2: "In what area do you want to have dinner?",
                 3: "What cuisine are you looking for?",
                 4: "In what price range should the restaurant be?",
@@ -162,7 +177,7 @@ class StateMachine:
             if utterance == 'reset':
                 return 1, True        
         if utterance is not None:
-            category = self.model.predict([utterance])
+            category = model.predict([utterance])
         if category == 'thankyou':
             return 9, True
 
@@ -204,7 +219,6 @@ class StateMachine:
             self.restaurants_options = find_restaurants(restaurant_info, self.preferences)
             self.add_preferences = self.update_dict(self.add_preferences, extract_all_preferences_add(utterance))
             self.restaurants_options = find_add_preferences(self.restaurants_options, self.add_preferences)
-
             if self.restaurants_options.empty:
                 return 6, True
             else:
@@ -281,21 +295,20 @@ class StateMachine:
         self.area = rest["area"].values[0]
         self.price = rest["pricerange"].values[0]
         self.food_type = rest["food"].values[0]
-        self.rest_additional = rest[0]
+        self.reason = " "
 
-        if self.rest_additional == 'assigned_seats':
-            self.reason = "The restaurant has assigned seats, because the restaurant is busy"
-        if self.rest_additional == 'children':
-            self.reason = "The restaurant is suitable for children as it does not have a long stay."
-        if self.rest_additional == 'romantic':
-            if rest["length_of_stay"] == "long stay":
-                self.reason = "The restaurant is romantic, because you can stay for a long time."
-            else: 
-                self.reason = "The restaurant might be romantic, because it is not a busy restaurant."
-        if self.rest_additional == "touristic":
-            if self.food_type != "romanian":
-                self.reason = "The restaurant is touristic, because it is serves cheap and good food."
-            else: 
-                self.reason = "The restaurant is touristic, because it is not local (Romanian) cuisine."
+        for pref, valbool in self.add_preferences.items():
+
+            if valbool:
+                if pref == 'assigned_seats':
+                    self.reason = "The restaurant has assigned seats because the restaurant is busy."
+                elif pref == 'children':
+                    self.reason = "The restaurant is suitable for children as it does not have a long stay."
+                elif pref == 'romantic':
+                    if  rest["length_of_stay"].values[0] == "long stay":
+                        self.reason = "The restaurant is romantic because you can stay for a long time."
+                elif pref == 'touristic':
+                    if self.food_type != "romanian":
+                        self.reason = "The restaurant is touristic because it serves cheap and good food."
 
         self.restaurants_options = self.restaurants_options.drop(rest.index)
