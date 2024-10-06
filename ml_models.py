@@ -1,3 +1,14 @@
+"""
+Implementation of baseline models
+Contains:
+1. Functions needed for nlp models
+1. 'Abstract' class MLModel
+    a) 'Abstract' class for bag-of-words based models
+        + 2 classes of models
+    b) 'Abstract' class for word-embeddings based models
+        + 2 classes of models
+"""
+
 import numpy as np
 import regex as re
 import pandas as pd
@@ -6,7 +17,7 @@ import matplotlib.pyplot as plt
 from tensorflow import keras
 from gensim.models.doc2vec import Doc2Vec
 import nltk
-nltk.download('punkt_tab')
+nltk.download('punkt_tab', quiet=True)
 from nltk.tokenize import word_tokenize
 
 from models import Model
@@ -137,7 +148,6 @@ class WE_Model(MLModel):
         X_test = np.array(X_test)
         ynew = self.model.predict(X_test, verbose=False)
 
-        #TODO: its hardcoded but works
         if self.word_list is None:
             self.word_list = np.loadtxt('./data/word_list.txt', dtype=str)
         return self.word_list[np.argmax(ynew[-1])]

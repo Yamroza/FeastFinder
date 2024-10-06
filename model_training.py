@@ -1,10 +1,18 @@
+"""
+Training and saving ML models for later use.
+Allows avoiding training every time a system is run.
+Consists of:
+1. Utterance category classifier training
+2. Doc2Vec model training
+"""
+
 from sklearn.model_selection import train_test_split
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk.tokenize import word_tokenize
 
 from ml_models import LR_WE_Model
 
-# Opening train & test set
+# Train & test set preparation
 x_set = []
 y_set = []
 
@@ -16,13 +24,13 @@ with open("data/dialog_acts.dat", 'r') as file:
 x_train, x_test, y_train, y_test = train_test_split(x_set, y_set, test_size=0.2, random_state=42)
 
 
-# Preparing category classifier
+# Utterance category classifier
 model = LR_WE_Model()
 model.train(x_train, y_train)
 model.save('./models/lr_we_classifier.keras')
 
 
-# Preparing model for vectorization
+# Doc2Vec model
 tagged_x_data = [TaggedDocument(words=word_tokenize(doc.lower()),
                                 tags=[str(i)]) for i, doc in enumerate(x_train)]
 vec_model = Doc2Vec(vector_size=50, min_count=2, epochs=50)
