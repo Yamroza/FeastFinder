@@ -1,8 +1,7 @@
 import pandas as pd
 
-
-print('System is loading. It usually takes around 30 seconds')
+print('System is loading. It usually takes a few seconds')
 from state_machine_code import StateMachine
 
 restaurant_info = pd.read_csv('data/restaurant_info_expanded.csv')
-SM = StateMachine(restaurant_info)
+SM = StateMachine(restaurant_info, "./models/lr_we_classifier.keras")

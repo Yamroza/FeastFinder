@@ -2,32 +2,10 @@ import pandas as pd
 import configparser
 import time
 import regex as re
-import nltk
 
-
-from sklearn.model_selection import train_test_split
 from ml_models import LR_WE_Model
 from pref_extract import find_restaurants, extract_all_preferences, extract_preference, find_add_preferences, extract_all_preferences_add
 
-# Opening train & test set
-x_set = []
-y_set = []
-
-with open("data/dialog_acts.dat", 'r') as file:
-    for line in file:
-        y_set.append(line.split()[0])
-        x_set.append(" ".join(line.split()[1:]).lower())
-
-x_train, x_test, y_train, y_test = train_test_split(x_set, y_set, test_size=0.2, random_state=42)
-
-# Initializing ml model for category classification
-model = LR_WE_Model()
-model.train(x_train, y_train)
-
-# Importing restaurant info
-restaurant_info = pd.read_csv('data/restaurant_info.csv')
-
-# %%
 # Possible state transitions, not used, only to look at
 # state_transition_possibilities = {
 #     1: [2, 9],          
@@ -40,9 +18,8 @@ restaurant_info = pd.read_csv('data/restaurant_info.csv')
 #     8: [8, 9]
 # }
 
-# %%
 class StateMachine:
-    def __init__(self, restaurant_info):
+    def __init__(self, restaurant_info, model_path):
 
         self.configParser = configparser.ConfigParser()
         self.filename = "config.ini"
@@ -52,6 +29,10 @@ class StateMachine:
         self.if_caps = self.configParser[self.setting[1]].getboolean('caps')
         self.style = self.configParser[self.setting[1]]['style']
         self.if_restart = self.configParser[self.setting[1]].getboolean('restart')
+
+        # Initializing ml model for category classification
+        self.model = LR_WE_Model()
+        self.model.load(model_path)
 
         self.state = 1
         self.preferences = {
@@ -100,7 +81,7 @@ class StateMachine:
                 8: f'{self.requested_info} of {self.restaurant_name} is {self.request_answer}',
                 9: "Have a great one. Peace!",
                 10: f"I have a different one for you. What about {self.restaurant_name}",
-                11: "That is not what I expected"
+                11: "I didn't quite understand, can you say it in other words?"
             }
         else:
             self.message_dict = {
@@ -114,7 +95,7 @@ class StateMachine:
                 8: f'{self.requested_info} of {self.restaurant_name} is {self.request_answer}',
                 9: "I hope you'll have a great time. Bye bye!",
                 10: f"That is unfortunate. What do you think of {self.restaurant_name}",
-                11: "That is not what I expected"
+                11: "I didn't quite understand, can you say it in other words?"
             }
         
         if self.if_caps:
@@ -177,7 +158,7 @@ class StateMachine:
             if utterance == 'reset':
                 return 1, True        
         if utterance is not None:
-            category = model.predict([utterance])
+            category = self.model.predict([utterance])
         if category == 'thankyou':
             return 9, True
 
@@ -215,10 +196,10 @@ class StateMachine:
                 return 5, False
         
         if self.state == 5:
-            print("pref: ", self.preferences)
-            self.restaurants_options = find_restaurants(restaurant_info, self.preferences)
-            self.add_preferences = self.update_dict(self.add_preferences, extract_all_preferences_add(utterance))
-            self.restaurants_options = find_add_preferences(self.restaurants_options, self.add_preferences)
+            if self.restaurants_options.empty:
+                self.restaurants_options = find_restaurants(self.restaurant_info, self.preferences)
+                self.add_preferences = self.update_dict(self.add_preferences, extract_all_preferences_add(utterance))
+                self.restaurants_options = find_add_preferences(self.restaurants_options, self.add_preferences)
             if self.restaurants_options.empty:
                 return 6, True
             else:
@@ -235,12 +216,10 @@ class StateMachine:
             return 5, False
             
         if self.state == 7:
-            # TODO - category prediction, now - hardcoded category
-            # category = predict(utterance)
-            # category = 'request' / 'reqalts'
+            print(category)
             if category == 'request':
                 return 8, False
-            if category == 'regalts':
+            if category == 'reqalts':
                 return 5, False
             if category == "affirm":
                 return 9, False
@@ -252,7 +231,6 @@ class StateMachine:
             #return ???
             
         if self.state == 8:
-            # TODO bug fixing (phone) text not displayed
             message = ""
             request_dict = {
                 'food': ["type", "food"],
@@ -277,7 +255,6 @@ class StateMachine:
             return 8, True
         
         if self.state == 9:
-            # TODO - its basically end of dialog
             return 9, True
         
         if self.state == 10:
@@ -287,6 +264,10 @@ class StateMachine:
             message1 = f"That is unfortunate. Does {self.restaurant_name} sound good?"
             self.message_dict[7] = message1
             return 7, True
+
+        print ('Did not find a good option', self.state)
+        return self.state, True
+
 
     def get_restaurant(self):
         rest = self.restaurants_options.sample()
@@ -310,5 +291,4 @@ class StateMachine:
                 elif pref == 'touristic':
                     if self.food_type != "romanian":
                         self.reason = "The restaurant is touristic because it serves cheap and good food."
-
         self.restaurants_options = self.restaurants_options.drop(rest.index)
