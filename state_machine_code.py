@@ -3,24 +3,8 @@ import configparser
 import time
 import regex as re
 
-from sklearn.model_selection import train_test_split
-from ml_models import LR_WE_Model
 from pref_extract import find_restaurants, extract_all_preferences, extract_preference, find_add_preferences, extract_all_preferences_add
-
-# Opening train & test set
-x_set = []
-y_set = []
-
-with open("data/dialog_acts.dat", 'r') as file:
-    for line in file:
-        y_set.append(line.split()[0])
-        x_set.append(" ".join(line.split()[1:]).lower())
-
-x_train, x_test, y_train, y_test = train_test_split(x_set, y_set, test_size=0.2, random_state=42)
-
-# Initializing ml model for category classification
-model = LR_WE_Model()
-model.train(x_train, y_train)
+from ml_models import LR_WE_Model
 
 # Importing restaurant info
 restaurant_info = pd.read_csv('data/restaurant_info.csv')
@@ -40,7 +24,7 @@ restaurant_info = pd.read_csv('data/restaurant_info.csv')
 
 # %%
 class StateMachine:
-    def __init__(self, restaurant_info):
+    def __init__(self, restaurant_info, model_path):
 
         self.configParser = configparser.ConfigParser()
         self.filename = "config.ini"
@@ -50,6 +34,9 @@ class StateMachine:
         self.if_caps = self.configParser[self.setting[1]].getboolean('caps')
         self.style = self.configParser[self.setting[1]]['style']
         self.if_restart = self.configParser[self.setting[1]].getboolean('restart')
+
+        self.model = LR_WE_Model()
+        self.model.load(model_path)
 
         self.state = 1
         self.preferences = {
@@ -175,7 +162,7 @@ class StateMachine:
             if utterance == 'reset':
                 return 1, True        
         if utterance is not None:
-            category = model.predict([utterance])
+            category = self.model.predict([utterance])
         if category == 'thankyou':
             return 9, True
 

@@ -1,0 +1,15 @@
+inform
+thankyou
+affirm
+request
+reqalts
+negate
+null
+bye
+deny
+confirm
+hello
+restart
+repeat
+ack
+reqmore
