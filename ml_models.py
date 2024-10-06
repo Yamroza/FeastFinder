@@ -4,7 +4,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from tensorflow import keras
-from gensim.models.doc2vec import Doc2Vec
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+import nltk
+nltk.download('punkt_tab')
 from nltk.tokenize import word_tokenize
 
 from models import Model
@@ -66,7 +68,6 @@ class MLModel(Model):
     def prepare_y_set(self, y_set):
         y_set = pd.Series(y_set)
         y_set, self.word_list = pd.factorize(y_set)
-        np.savetxt('./data/word_list.txt', self.word_list, fmt='%s')
         y_set = to_cat(y_set, 15)
         return y_set
 
@@ -82,12 +83,6 @@ class MLModel(Model):
         ax2.plot(history.history["val_accuracy"], label="Validation accuracy")
         ax2.set_title(f"Accuracy in {epochs} epochs")
         fig2.legend()
-
-    def save(self, path):
-        self.model.save(path)
-
-    def load(self, path):
-        self.model = keras.models.load_model(path)
 
 
 class BOW_Model(MLModel):
@@ -122,9 +117,20 @@ class WE_Model(MLModel):
     def __init__(self):
         super().__init__()
         self.model = keras.Sequential()
-        self.vectorizing_model = Doc2Vec.load("./models/doc2vec_model")
+        self.vectorizing_model = None
+
+    def prepare_vectorizing_model(self, X_train):
+        tagged_x_data = [TaggedDocument(words=word_tokenize(doc.lower()),
+                                        tags=[str(i)]) for i, doc in enumerate(X_train)]
+        model = Doc2Vec(vector_size=50, min_count=2, epochs=50)
+        model.build_vocab(tagged_x_data)
+        model.train(tagged_x_data,
+                    total_examples=model.corpus_count,
+                    epochs=model.epochs)
+        return model
 
     def train(self, X_train, y_train, batch_size=64, epochs=12, verbose=0):
+        self.vectorizing_model = self.prepare_vectorizing_model(X_train)
         document_vectors = to_vector(self.vectorizing_model, X_train)
         y_train_cat = self.prepare_y_set(y_train)
         history = self.model.fit(document_vectors, y_train_cat, batch_size=batch_size, epochs=epochs, verbose=verbose)
@@ -134,10 +140,6 @@ class WE_Model(MLModel):
         X_test = to_vector(self.vectorizing_model, X_test)
         X_test = np.array(X_test)
         ynew = self.model.predict(X_test, verbose=False)
-
-        #TODO: its hardcoded but works
-        if self.word_list is None:
-            self.word_list = np.loadtxt('./data/word_list.txt', dtype=str)
         return self.word_list[np.argmax(ynew[-1])]
 
 

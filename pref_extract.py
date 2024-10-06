@@ -1,6 +1,7 @@
 # %%
 import pandas as pd
 from Levenshtein import distance
+import numpy as np
 
 # %%
 restaurant_info = pd.read_csv('data/restaurant_info.csv')
@@ -9,6 +10,30 @@ restaurant_info = pd.read_csv('data/restaurant_info.csv')
 food_types = pd.unique(restaurant_info['food'].dropna())
 areas = pd.unique(restaurant_info['area'].dropna())
 prices = pd.unique(restaurant_info['pricerange'].dropna())
+
+def extendingcsv(restaurant_info):
+    
+    # available values
+    food_quality_ant = ['cheap', 'good', 'expensive']
+    crowdedness_ant = ['busy', 'quiet', 'moderate', 'packed']
+    length_of_stay_ant = ['long stay', 'short stay', 'moderate stay']
+
+    # Initialization of 1D arrays
+    food_quality = np.random.choice(food_quality_ant, size=len(restaurant_info))
+    crowdedness = np.random.choice(crowdedness_ant, size=len(restaurant_info))
+    length_of_stay = np.random.choice(length_of_stay_ant, size=len(restaurant_info))
+
+    # Adding attributes to the DataFrame
+    restaurant_info['food_quality'] = food_quality
+    restaurant_info['crowdedness'] = crowdedness
+    restaurant_info['length_of_stay'] = length_of_stay
+
+    return restaurant_info
+
+
+add_pref = ['romantic', 'touristic', 'assigned seats', 'children']
+
+
 
 # %%
 external_food_types = ['hindi', 'greek', 'scottish', 'corsica', 'christmas',
@@ -80,11 +105,18 @@ def find_restaurants(restaurant_info: pd.DataFrame, preferences: dict) -> pd.Dat
 find_restaurants(restaurant_info, preferences)
 
 
-def extract_all_preferences_add(utterance, add_pref):
+def extract_all_preferences_add(utterance):
 
-    value_dict = dict()
-    value_dict['add_pref'] = extract_preference(utterance, add_pref, 2)
-    
+    value_dict = {
+    'touristic': False,
+    'assigned seats': False,
+    'romantic' : False,
+    'children' : False }
+    pref = extract_preference(utterance, add_pref, 2)
+
+    if pref in value_dict:
+        value_dict[pref] = True
+ 
     return value_dict 
 
 def add_requirements(subset_rest):
@@ -94,31 +126,31 @@ def add_requirements(subset_rest):
     subset_rest['assigned_seats'] = None
     subset_rest['children'] = None
     
-    subset_rest.loc[subset_rest['cuisine'] == 'romanian', 'touristic'] = False
-    subset_rest.loc[(subset_rest['food_quality'] == 'good') & (subset_rest['price'] == 'cheap'), 'touristic'] = True
+    subset_rest.loc[subset_rest['food'] == 'romanian', 'touristic'] = False
+    subset_rest.loc[(subset_rest['food_quality'] == 'good') & (subset_rest['pricerange'] == 'cheap'), 'touristic'] = True
     subset_rest.loc[subset_rest['crowdedness'] == 'busy', 'assigned_seats'] = True
-    subset_rest.loc[subset_rest['length_of_stay'] == 'long', 'children'] = False
+    subset_rest.loc[subset_rest['length_of_stay'] == 'long stay', 'children'] = False
     subset_rest.loc[subset_rest['crowdedness'] == 'busy','romantic'] = False
-    subset_rest.loc[subset_rest['length_of_stay'] == 'long','romantic'] = True
+    subset_rest.loc[subset_rest['length_of_stay'] == 'long stay','romantic'] = True
     
     return subset_rest
 
-def find_add_preferences(restaurant_info: pd.DataFrame, add_preferences: dict) -> pd.DataFrame:
+def find_add_preferences(restaurant_infom: pd.DataFrame, add_preferences: dict) -> pd.DataFrame:
     """
     """
-    
+    restaurant_info = extendingcsv(restaurant_infom)
     spec_restaurants = add_requirements(restaurant_info)
 
-    if 'touristic' in add_preferences:
+    if add_preferences.get('touristic') is True:
         spec_restaurants = spec_restaurants[spec_restaurants['touristic'] == True]
         
-    if 'assigned seats' in add_preferences:
+    if add_preferences.get('assigned seats') is True:
         spec_restaurants = spec_restaurants[spec_restaurants['assigned_seats'] == True]
         
-    if 'children' in add_preferences:
+    if add_preferences.get('children') is True:
         spec_restaurants = spec_restaurants[spec_restaurants['children'] == True]
         
-    if 'romantic' in add_preferences:
+    if add_preferences.get('romantic') is True:
         spec_restaurants = spec_restaurants[spec_restaurants['romantic'] == True]
     
     return spec_restaurants
