@@ -57,7 +57,7 @@ class RuleBasedModel(Model):
         }
 
     def predict(self, input):
-        words = input.lower().split()
+        words = input[0].lower().split()
         prediction_dict = {key: 0 for key in self.keyword_dict.keys()}
 
         for key in self.keyword_dict.keys():            # Iterating over categories

@@ -4,6 +4,7 @@ import time
 import regex as re
 
 from ml_models import LR_WE_Model
+from models import RuleBasedModel
 from pref_extract import find_restaurants, extract_all_preferences, extract_preference, find_add_preferences, extract_all_preferences_add
 
 # Possible state transitions, not used, only to look at
@@ -31,8 +32,8 @@ class StateMachine:
         self.if_restart = self.configParser[self.setting[0]].getboolean('restart')
 
         # Initializing ml model for category classification
-        self.model = LR_WE_Model()
-        self.model.load(model_path)
+        self.model = RuleBasedModel()
+        # self.model.load(model_path)
 
         self.state = 1
         self.preferences = {
@@ -177,7 +178,7 @@ class StateMachine:
         if self.if_restart == True:
             if utterance == 'reset':
                 return 1, True        
-        if utterance is not None:
+        if utterance is not None and utterance != "":
             category = self.model.predict([utterance])
         if category == 'thankyou':
             return 9, True
@@ -221,6 +222,8 @@ class StateMachine:
                 self.add_preferences = self.update_dict(self.add_preferences, extract_all_preferences_add(utterance))
                 self.restaurants_options = find_add_preferences(self.restaurants_options, self.add_preferences)
             if self.restaurants_options.empty:
+                message = f"I'm sorry, I don't see any restaurants matching your preferences in my database. Try providing different preferences. You mentioned this cuisine: {self.preferences['food_type']}, in this area: {self.preferences['area']}, in this price range: {self.preferences['price']}"
+                self.message_dict[6] = message 
                 return 6, True
             else:
                 self.get_restaurant()
@@ -236,7 +239,7 @@ class StateMachine:
             return 5, False
             
         if self.state == 7:
-            category = self.model.predict(utterance)
+            print(category)
             if category == 'request':
                 return 8, False
             if category == 'reqalts':
@@ -245,11 +248,12 @@ class StateMachine:
                 return 9, False
             if category == "negate":
                 return 10, False
+            if category == "inform":
+                self.handle_inform(utterance)
+                return 7, True
             else:
                 print(self.message_dict[11])
-                return 7, False
-            # TODO: what happens else?
-            #return ???
+                return 7, True
             
         if self.state == 8:
             message = ""
@@ -289,6 +293,24 @@ class StateMachine:
         
         return self.state, True
 
+    def handle_inform(self, utterance):
+    
+        new_preferences = extract_all_preferences(utterance)
+        for key, new_value in new_preferences.items():
+            current_value = self.preferences.get(key)
+            if current_value != new_value and new_value != None:
+                print(f"I noticed a change in your preference for '{key}':")
+                if current_value:
+                    print(f"Current value: '{current_value}'")
+                print(f"New value: '{new_value}'. Do you want to update it? (yes/no)")
+
+                user_response = input().strip().lower()
+
+                if self.model.predict(user_response) == "affirm" or user_response =="yes" or user_response == "y":
+                    self.preferences[key] = new_value
+                    print(f"'{key}' preference updated successfully.")
+                else:
+                    print(f"'{key}' preference update canceled.")
 
     def get_restaurant(self):
         rest = self.restaurants_options.sample()
