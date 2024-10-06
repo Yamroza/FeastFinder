@@ -53,6 +53,7 @@ class StateMachine:
         self.area = ""
         self.price = ""
         self.food_type = ""
+        self.utterance = ""
 
         self.romantic = ""
         self.touristic = ""
@@ -237,6 +238,7 @@ class StateMachine:
             return 5, False
             
         if self.state == 7:
+            self.utterance = utterance
             if category == 'request':
                 return 8, False
             if category == 'reqalts':
@@ -247,6 +249,8 @@ class StateMachine:
                 return 10, False
             
         if self.state == 8:
+            if utterance != "":
+                self.utterance = utterance
             message = ""
             request_dict = {
                 'food': ["type", "food"],
@@ -255,7 +259,7 @@ class StateMachine:
                 'postcode': ["postal", "postcode"]
              }
             for key, item in request_dict.items():
-                if extract_preference(utterance, item, 2) is not None:
+                if extract_preference(self.utterance, item, 2) is not None:
                     if key == "food":
                         key_name = "cuisine"
                     elif key == "phone":
