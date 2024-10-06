@@ -106,12 +106,26 @@ class MLModel(Model):
 class BOW_Model(MLModel):
     def __init__(self):
         super().__init__()
+        self.vocab = None
 
     def train(self, X_train, y_train, batch_size=64, epochs=12, verbose=0):
+        self.vocab = tokenization(X_train)
+        np.savetxt('./data/vocab.txt', self.vocab, fmt='%s')
+
         X_train_bow = generate_bow(X_train, X_train)
         y_train_cat = self.prepare_y_set(y_train)
-        history = self.model.fit(X_train_bow, y_train_cat, batch_size=batch_size, epochs=epochs, verbose=verbose)
+        history = self.model.fit(np.array(X_train_bow), y_train_cat, batch_size=batch_size, epochs=epochs, verbose=verbose)
         return history
+
+    def predict(self, X_test):
+        if self.vocab is None:
+            self.vocab = np.loadtxt('./data/vocab.txt', dtype=str)
+        X_test = generate_vec(X_test, self.vocab)
+        ynew = self.model.predict(X_test, verbose=False)
+
+        if self.word_list is None:
+            self.word_list = np.loadtxt('./data/word_list.txt', dtype=str)
+        return self.word_list[np.argmax(ynew[-1])]
 
 
 class FNN_BOW_Model(BOW_Model):

@@ -152,12 +152,13 @@ class StateMachine:
     def change_state(self, utterance = None):
         next_state, if_message = self.predict_next_state(utterance)
         if if_message:
+            time.sleep(self.delay)
             if(self.if_caps):
-                time.sleep(self.delay)
                 print(self.message_dict[next_state].upper())
             else:
-                time.sleep(self.delay)
                 print(self.message_dict[next_state])
+            if next_state == 9:
+                quit()
             utterance = input()
             self.state = next_state
             self.change_state(utterance)
@@ -236,7 +237,6 @@ class StateMachine:
             return 5, False
             
         if self.state == 7:
-            category = self.model.predict(utterance)
             if category == 'request':
                 return 8, False
             if category == 'reqalts':
@@ -245,11 +245,6 @@ class StateMachine:
                 return 9, False
             if category == "negate":
                 return 10, False
-            else:
-                print(self.message_dict[11])
-                return 7, False
-            # TODO: what happens else?
-            #return ???
             
         if self.state == 8:
             message = ""
@@ -286,7 +281,7 @@ class StateMachine:
             self.message_dict[7] = message1
             return 7, True
 
-        
+        print(self.message_dict[11])
         return self.state, True
 
 
@@ -313,6 +308,3 @@ class StateMachine:
                     if self.food_type != "romanian":
                         self.reason = "The restaurant is touristic because it serves cheap and good food."
         self.restaurants_options = self.restaurants_options.drop(rest.index)
-
-restaurant_info = pd.read_csv('data/restaurant_info_expanded.csv')
-SM = StateMachine(restaurant_info, "./models/lr_we_classifier.keras")
