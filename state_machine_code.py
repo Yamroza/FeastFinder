@@ -26,9 +26,9 @@ class StateMachine:
         self.configParser.read(self.filename)
         self.setting = self.configParser.sections()
         self.delay = self.configParser[self.setting[0]].getfloat('delay')
-        self.if_caps = self.configParser[self.setting[1]].getboolean('caps')
-        self.style = self.configParser[self.setting[1]]['style']
-        self.if_restart = self.configParser[self.setting[1]].getboolean('restart')
+        self.if_caps = self.configParser[self.setting[0]].getboolean('caps')
+        self.style = self.configParser[self.setting[0]]['style']
+        self.if_restart = self.configParser[self.setting[0]].getboolean('restart')
 
         # Initializing ml model for category classification
         self.model = LR_WE_Model()
@@ -110,11 +110,26 @@ class StateMachine:
         self.change_state(utterance)
 
 
-    def pattern_recog(self, utterance):
+    def pattern_recog(self, utterance, strict=True):
         """
-        We recognize the pattern "any X". It returns X. It returns a list of all instances of X
+        Recognize the pattern "any X" or synonyms like "don't care X".
+        It returns X if found; if strict is False, it also returns True for just the keyword.
         """
-        matches = re.findall(r'\bany\b\s+(\w+)', utterance)
+        keywords = [
+            "any", "don't care", "dont care", "do not care", "do'nt care", "whatever", "whatevr", 
+            "wathever", "no preference", "no preferece", "no preferrence", "n o preference", 
+            "no prefernce", "anyting", "enything", "anything", "don care", "doesn't matter", 
+            "doesnt matter", "dosen't matter", "does'nt matter", "do not mind", "dont mind", 
+            "do'nt mind", "anything goes", "anythin goes"
+        ]
+        pattern = r'\b(?:' + '|'.join(re.escape(keyword) for keyword in keywords) + r')\b\s+(\w+)'
+        matches = re.findall(pattern, utterance, re.IGNORECASE)
+
+        # If strict is False and no X found, check if the utterance matches only the keyword
+        if not strict and not matches:
+            keyword_pattern = r'\b(?:' + '|'.join(re.escape(keyword) for keyword in keywords) + r')\b'
+            if re.search(keyword_pattern, utterance, re.IGNORECASE):
+                return True
         if matches:
             return matches
         else:
@@ -125,10 +140,14 @@ class StateMachine:
         return old
 
     def any_update(self, words_after_any: list, orig_words: list):
-        for word in words_after_any:
-            for orig_word in orig_words: 
-                if extract_preference(word, self.synonyms[orig_word], 2):
-                    self.preferences = self.update_dict(self.preferences, {orig_word: "any"})
+        if (words_after_any):
+            orig_word = orig_words[0]
+            self.preferences = self.update_dict(self.preferences, {orig_word: "any"})
+        else:
+            for word in words_after_any:
+                for orig_word in orig_words: 
+                    if extract_preference(word, self.synonyms[orig_word], 2):
+                        self.preferences = self.update_dict(self.preferences, {orig_word: "any"})
 
     def change_state(self, utterance = None):
         next_state, if_message = self.predict_next_state(utterance)
@@ -144,6 +163,7 @@ class StateMachine:
             self.change_state(utterance)
         else:
             self.state = next_state
+            utterance = ""
             self.change_state(utterance)
 
     def predict_next_state(self, utterance = None) -> tuple[int, bool]:
@@ -170,8 +190,8 @@ class StateMachine:
         
         if self.state == 2:
             self.preferences = self.update_dict(self.preferences, extract_all_preferences(utterance))
-            if self.pattern_recog(utterance) is not None:
-                self.any_update( self.pattern_recog(utterance), ["area"])
+            if self.pattern_recog(utterance, False) is not None:
+                self.any_update( self.pattern_recog(utterance, False), ["area"])
             if self.preferences['area'] is None:
                 return 2, True
             else:
@@ -179,8 +199,8 @@ class StateMachine:
             
         if self.state == 3:
             self.preferences = self.update_dict(self.preferences, extract_all_preferences(utterance))
-            if self.pattern_recog(utterance) is not None:
-                self.any_update( self.pattern_recog(utterance), ["food_type"])
+            if self.pattern_recog(utterance, False) is not None:
+                self.any_update( self.pattern_recog(utterance, False), ["food_type"])
             if self.preferences['food_type'] is None:
                 return 3, True
             else:
@@ -188,8 +208,8 @@ class StateMachine:
             
         if self.state == 4:
             self.preferences = self.update_dict(self.preferences, extract_all_preferences(utterance))
-            if self.pattern_recog(utterance) is not None:
-                self.any_update( self.pattern_recog(utterance), ["price"])
+            if self.pattern_recog(utterance, False) is not None:
+                self.any_update( self.pattern_recog(utterance, False), ["price"])
             if self.preferences['price'] is None:
                 return 4, True
             else:
@@ -216,7 +236,7 @@ class StateMachine:
             return 5, False
             
         if self.state == 7:
-            print(category)
+            category = self.model.predict(utterance)
             if category == 'request':
                 return 8, False
             if category == 'reqalts':
@@ -226,7 +246,8 @@ class StateMachine:
             if category == "negate":
                 return 10, False
             else:
-                return 11, False
+                print(self.message_dict[11])
+                return 7, False
             # TODO: what happens else?
             #return ???
             
@@ -265,7 +286,7 @@ class StateMachine:
             self.message_dict[7] = message1
             return 7, True
 
-        print ('Did not find a good option', self.state)
+        
         return self.state, True
 
 
@@ -292,3 +313,6 @@ class StateMachine:
                     if self.food_type != "romanian":
                         self.reason = "The restaurant is touristic because it serves cheap and good food."
         self.restaurants_options = self.restaurants_options.drop(rest.index)
+
+restaurant_info = pd.read_csv('data/restaurant_info_expanded.csv')
+SM = StateMachine(restaurant_info, "./models/lr_we_classifier.keras")
