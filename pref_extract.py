@@ -1,3 +1,7 @@
+"""
+Functions for preference extraction
+"""
+
 import pandas as pd
 pd.options.mode.chained_assignment = None
 from Levenshtein import distance
@@ -10,8 +14,8 @@ areas = pd.unique(restaurant_info['area'].dropna())
 prices = pd.unique(restaurant_info['pricerange'].dropna())
 
 
-add_pref = ['romantic', 'touristic', 'assigned seats', 'children']
-
+# some of the food types are not appearing in the database,
+# but we want them to be recognized as well
 external_food_types = ['hindi', 'greek', 'scottish', 'corsica', 'christmas',
                        'mexican', 'kosher', 'belgium', 'world', 'creative',
                        'cantonese', 'basque', 'brazilian', 'hungarian',
@@ -21,7 +25,15 @@ external_food_types = ['hindi', 'greek', 'scottish', 'corsica', 'christmas',
 food_types = list(food_types)
 food_types.extend(external_food_types)
 
+
 def extract_preference(utterance: str, category_list: list, threshold_distance: int) -> str:
+    """
+    Checks if specific words appear in the utterance and extracts them as a preference
+    :param utterance: User input
+    :param category_list: List of words we are looking for
+    :param threshold_distance: Measure for Levenshtein distance
+    :return Word from the list with a best match
+    """
     words = utterance.lower().split()
     
     best_word = None
@@ -34,12 +46,12 @@ def extract_preference(utterance: str, category_list: list, threshold_distance: 
 
     return best_word
 
+
 def extract_all_preferences(utterance: str, food_types: list = food_types, areas: list = areas, prices: list= prices) -> dict[str, str]:
     """
     Extracts all preferences from a single 'inform' utterance at once
-    TO DISCUSS:
-    In the exercise description maximal Levenshtein distance is 3. Imo 3 is too much.
-    Examples where 3 still finds a preference (word in utterance -> preference):
+    In the exercise description maximal Levenshtein distance is 3. In our opinion 3
+    is too much. Examples where 3 still finds a preference (word in utterance -> preference):
     food -> seafood
     english -> polish
     care -> centre
@@ -49,13 +61,7 @@ def extract_all_preferences(utterance: str, food_types: list = food_types, areas
     value_dict['area'] = extract_preference(utterance, areas, 1)
     value_dict['price'] = extract_preference(utterance, prices, 2)
     
-    return value_dict    
-
-# idc = ['t care', 'any', 't matter']
-
-sample_utterance = 'cheep, chinese food in amazing sothu of Utrecht'
-preferences = extract_all_preferences(sample_utterance, food_types, areas, prices)
-preferences
+    return value_dict
 
 
 def find_restaurants(restaurant_info: pd.DataFrame, preferences: dict) -> pd.DataFrame:
@@ -73,12 +79,12 @@ def find_restaurants(restaurant_info: pd.DataFrame, preferences: dict) -> pd.Dat
     ]
     return restaurants
 
-# %%
-find_restaurants(restaurant_info, preferences)
+add_pref = ['romantic', 'touristic', 'assigned seats', 'children']
 
-
-def extract_all_preferences_add(utterance):
-
+def extract_all_preferences_add(utterance: str) -> dict:
+    """
+    Looks for additional preferences in user utterance
+    """
     value_dict = {
     'touristic': False,
     'assigned seats': False,
@@ -91,8 +97,13 @@ def extract_all_preferences_add(utterance):
  
     return value_dict 
 
-def add_requirements(subset_rest):
 
+def add_requirements(subset_rest: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adding additional info to a chosen subset of restaurant database, using a rule system
+    :param subset_rest: Database fragment
+    :return: database with additional info
+    """
     subset_rest['romantic'] = None
     subset_rest['touristic'] = None
     subset_rest['assigned_seats'] = None
@@ -107,8 +118,13 @@ def add_requirements(subset_rest):
     
     return subset_rest
 
+
 def find_add_preferences(restaurant_info: pd.DataFrame, add_preferences: dict) -> pd.DataFrame:
     """
+    Choosing restaurants from database based on additional user preferences
+    :param restaurant_info: chosen database subset
+    :param add_preferences: chosen preferences
+    :return: filtered restaurants
     """
     spec_restaurants = add_requirements(restaurant_info)
 

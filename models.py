@@ -1,3 +1,11 @@
+"""
+Implementation of baseline models
+Contains:
+1. 'Abstract' class Model
+    a) Majority-class baseline model
+    b) Rule-based baseline model
+"""
+
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 class Model:
