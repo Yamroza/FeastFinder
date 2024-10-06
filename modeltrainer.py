@@ -82,7 +82,7 @@ class ModelTrainer:
     def __max_words(self, query: str, word_list: list, y_train: np.array) -> str:
         return word_list[np.bincount(y_train).argmax()]
 
-    def __to_vector(self, list_of_words: list, model = "doc2vec_model"):
+    def __to_vector(self, list_of_words: list, model = "./models/doc2vec_model"):
         try:
             model = Doc2Vec.load(model)
             vectorized = [model.infer_vector(word_tokenize(doc.lower())) for doc in list_of_words]
