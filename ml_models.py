@@ -22,6 +22,8 @@ from nltk.tokenize import word_tokenize
 
 from models import Model
 
+from sklearn.linear_model import LogisticRegression
+
 
 def tokenization(data):
     tokenized = []
@@ -182,3 +184,19 @@ class LR_WE_Model(WE_Model):
         self.model.add(keras.Input(shape=(50,)))
         self.model.add(keras.layers.Dense(15, activation="softmax"))
         self.model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+
+
+class LogisticRegressorModel:
+    def __init__(self):
+        self.lr_model = None
+
+    def fit(self, X_train: list, y_train: list, solver="saga", penalty="l2", C=10, max_iter=200) -> None:
+        # Train the lr model.
+        self.lr_model = LogisticRegression(random_state = 42, solver=solver, penalty=penalty, C=C,
+                                           max_iter=max_iter).fit(X_train, y_train)
+
+    def predict(self, X_test):
+        # Make predictions and return as pandas series.
+        predictions = self.lr_model.predict(X_test)
+
+        return pd.Series(predictions)[0]

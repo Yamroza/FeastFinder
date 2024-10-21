@@ -2,10 +2,44 @@ import pandas as pd
 import configparser
 import time
 import regex as re
+import numpy as np
 
 from ml_models import LR_WE_Model
-from models import RuleBasedModel
+# from models import RuleBasedModel
+from ml_models import LogisticRegressorModel
 from pref_extract import find_restaurants, extract_all_preferences, extract_preference, find_add_preferences, extract_all_preferences_add
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+
+def prepare_data(path: str, drop_duplicates: bool = False, vectorize: bool = False) -> tuple:
+    """Preparing data for modeling - creating target, getting lowercase,
+        splitting and optionally dropping duplicates.
+    """
+    df = pd.read_csv(path, names=['sentence'])
+
+    df['target'] = df['sentence'].apply(lambda x: x.split()[0].lower())
+    df['sentence'] = df['sentence'].apply(lambda x: x.split(' ', 1)[1].lower())
+
+    if drop_duplicates:
+        df = df.drop_duplicates(subset=['sentence'], keep='first')
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        df['sentence'], df['target'], test_size=0.15, random_state=42)
+
+    if vectorize:
+        X_train, X_test, vectorizer = vectorize_data(X_train, X_test)
+    else:
+        vectorizer = None
+
+    return X_train, X_test, y_train, y_test, vectorizer
+
+
+def vectorize_data(X_train: np.array, X_test: np.array) -> tuple:
+    vectorizer = CountVectorizer()
+
+    X_train = vectorizer.fit_transform(X_train)
+    X_test = vectorizer.transform(X_test)
+    return X_train, X_test, vectorizer
 
 # Possible state transitions, not used, only to look at
 # state_transition_possibilities = {
@@ -32,8 +66,10 @@ class StateMachine:
         self.if_restart = self.configParser[self.setting[0]].getboolean('restart')
 
         # Initializing ml model for category classification
-        self.model = RuleBasedModel()
-        # self.model.load(model_path)
+        self.model = LogisticRegressorModel()
+        # Train & test set preparation
+        X_train, X_test, y_train, y_test, self.vectorizer = prepare_data("data/dialog_acts.dat", True, True)
+        self.model.fit(X_train, y_train)
 
         self.state = 1
         self.preferences = {
@@ -181,8 +217,9 @@ class StateMachine:
             if utterance == 'reset':
                 return 1, True        
         if utterance is not None and utterance != "":
-            category = self.model.predict([utterance])
-        if category == 'thankyou':
+            category = self.model.predict(self.vectorizer.transform([utterance]))
+            print(category)
+        if category == 'thankyou' or category == 'bye':
             return 9, True
 
         
